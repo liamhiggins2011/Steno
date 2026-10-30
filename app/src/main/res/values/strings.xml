@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Steno</string>
+    <string name="service_label">Steno text expansion</string>
+    <string name="service_description">Steno watches editable text fields and replaces your shortcuts with their full phrases as you type. It works entirely on-device and never connects to the internet.</string>
+    <string name="service_summary">Expand shortcuts into phrases while you type</string>
+</resources>

@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Listens for text changes in editable fields so a trigger can be expanded
+    the moment it is typed. canRetrieveWindowContent + flagInputMethodEditor
+    let the service read the focused field and (on API 34+) inject text through
+    the AccessibilityService InputMethod API.
+-->
+<accessibility-service xmlns:android="http://schemas.android.com/apk/res/android"
+    android:accessibilityEventTypes="typeViewTextChanged|typeViewFocused|typeWindowStateChanged|typeViewTextSelectionChanged"
+    android:accessibilityFeedbackType="feedbackGeneric"
+    android:accessibilityFlags="flagDefault|flagReportViewIds|flagRetrieveInteractiveWindows|flagInputMethodEditor"
+    android:canRetrieveWindowContent="true"
+    android:description="@string/service_description"
+    android:notificationTimeout="20"
+    android:settingsActivity="com.hirephaze.steno.ui.MainActivity"
+    android:summary="@string/service_summary" />
