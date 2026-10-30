@@ -108,3 +108,7 @@ no signing secrets in the repo. Create `local.properties` locally with
 **Steno** · `com.hirephaze.steno` · v0.1.0 — early, working, and honest.
 Found a bug or want a feature? Open an issue. ⭐ it if offline-first tools are
 your thing.
+
+## License
+
+[MIT](LICENSE) © 2026 Liam Higgins — free to use, fork, and build on.
