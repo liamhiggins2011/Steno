@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="docs/hero.png" alt="Steno — text expansion that can't spy on you. Type ;addr, get your full address, in any app. Zero internet permission." width="100%">
+</p>
+
 # ✍️ Steno
 
 ### Text expansion for Android that **can't** spy on you — because it has no internet permission at all.
