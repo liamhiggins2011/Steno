@@ -1,6 +1,7 @@
 package com.hirephaze.steno.ui
 
 import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import android.provider.Settings
 import androidx.activity.ComponentActivity
@@ -30,6 +31,7 @@ import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -194,11 +196,31 @@ private fun ServiceStatusCard() {
                 "Turn on the Steno accessibility service so it can expand your shortcuts as you type. It runs on-device and never uses the internet.",
                 style = MaterialTheme.typography.bodyMedium,
             )
+            Spacer(Modifier.height(8.dp))
+            Text(
+                "Installed Steno from an APK? Android may say the accessibility setting is " +
+                    "restricted and block it. If that happens, open App info, tap the ⋮ menu " +
+                    "at the top right, choose \"Allow restricted settings\", then come back and " +
+                    "turn Steno on.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
             Spacer(Modifier.height(12.dp))
             Button(onClick = {
                 context.startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
             }) {
                 Text("Open accessibility settings")
+            }
+            Spacer(Modifier.height(8.dp))
+            OutlinedButton(onClick = {
+                context.startActivity(
+                    Intent(
+                        Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                        Uri.fromParts("package", context.packageName, null),
+                    ),
+                )
+            }) {
+                Text("Open app info")
             }
         }
     }

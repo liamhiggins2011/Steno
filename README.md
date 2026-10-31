@@ -52,6 +52,12 @@ apps, email, browsers, forms — without replacing your keyboard.
 
 Now type your trigger anywhere and watch it expand.
 
+> **"Restricted setting" when turning on accessibility?** On Android 13 and up,
+> apps installed from an APK are blocked from accessibility until you unblock
+> them. Open App info, tap the ⋮ menu, choose "Allow restricted settings",
+> then turn Steno on. The app's setup card has a button that takes you straight
+> there.
+
 ## ✨ What it does
 
 - **Longest match wins** — `;addr2` beats `;addr`, so you can nest shortcuts.
