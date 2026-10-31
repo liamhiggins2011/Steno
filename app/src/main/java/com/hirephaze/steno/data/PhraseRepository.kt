@@ -25,7 +25,7 @@ class PhraseRepository private constructor(context: Context) {
     val snapshotReady = _snapshotReady.asStateFlow()
 
     suspend fun refreshSnapshot() {
-        rules = dao.getAll().map { PhraseRule(it.shortcut, it.expansion) }
+        rules = dao.getAll().flatMap { PhraseRule.forPhrase(it.shortcut, it.expansion) }
         _snapshotReady.value = true
     }
 

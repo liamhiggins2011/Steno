@@ -143,7 +143,7 @@ private fun PhraseRow(phrase: Phrase, onClick: () -> Unit, onDelete: () -> Unit)
         ) {
             Column(Modifier.weight(1f)) {
                 Text(
-                    phrase.shortcut,
+                    phrase.shortcut.replace("|", "  /  "),
                     fontFamily = FontFamily.Monospace,
                     fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.primary,
@@ -239,6 +239,13 @@ private fun PhraseEditorScreen(
                 label = { Text("Shortcut") },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
+            )
+            Text(
+                "Want a few ways to trigger the same phrase? Put a | between them and " +
+                    "they'll all work.\nExample:  phoneno | Phoneno | pno  — so it still " +
+                    "fires if your keyboard capitalizes the first letter.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             OutlinedTextField(
                 value = expansion,

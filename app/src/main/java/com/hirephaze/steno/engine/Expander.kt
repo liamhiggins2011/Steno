@@ -4,7 +4,26 @@ import java.text.DateFormat
 import java.util.Date
 
 /** One shortcut -> expansion template pair, as the matcher sees it. */
-data class PhraseRule(val shortcut: String, val expansion: String)
+data class PhraseRule(val shortcut: String, val expansion: String) {
+    companion object {
+        /** Separates the interchangeable variants a single phrase may trigger on. */
+        const val ALIAS_SEPARATOR = '|'
+
+        /**
+         * Expands one stored shortcut field into a rule per variant. A field may
+         * list interchangeable variants separated by [ALIAS_SEPARATOR], e.g.
+         * `phoneno|Phoneno|pno`, so the same expansion fires whichever the
+         * keyboard actually produced (auto-capitalization, a shorter alias…).
+         * Variants are trimmed, blanks dropped and duplicates removed.
+         */
+        fun forPhrase(rawShortcut: String, expansion: String): List<PhraseRule> =
+            rawShortcut.split(ALIAS_SEPARATOR)
+                .map { it.trim() }
+                .filter { it.isNotEmpty() }
+                .distinct()
+                .map { PhraseRule(it, expansion) }
+    }
+}
 
 /** Result of a successful match: the field's new contents and caret position. */
 data class Expansion(val newText: String, val newSelection: Int)

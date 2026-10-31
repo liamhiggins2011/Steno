@@ -55,6 +55,9 @@ Now type your trigger anywhere and watch it expand.
 ## ✨ What it does
 
 - **Longest match wins** — `;addr2` beats `;addr`, so you can nest shortcuts.
+- **A few ways to trigger one phrase** — put a `|` between them and they all
+  expand to the same text: `phoneno | Phoneno | pno`. Handy for when your
+  keyboard capitalizes the first letter.
 - **Smart boundaries** — symbol triggers (`;`, `/`, `:`) fire anywhere; plain
   words like `brb` only fire at a word boundary, so they never go off mid-word.
 - **Dynamic placeholders** baked into any expansion:

@@ -59,6 +59,42 @@ class ExpanderTest {
     }
 
     @Test
+    fun `a phrase field splits into one rule per pipe-separated variation`() {
+        val built = PhraseRule.forPhrase("phoneno|Phoneno|pno", "215-555-0199")
+        assertEquals(
+            listOf(
+                PhraseRule("phoneno", "215-555-0199"),
+                PhraseRule("Phoneno", "215-555-0199"),
+                PhraseRule("pno", "215-555-0199"),
+            ),
+            built,
+        )
+    }
+
+    @Test
+    fun `forPhrase trims blanks and drops empty and duplicate variations`() {
+        val built = PhraseRule.forPhrase(" brb | brb ||", "be right back")
+        assertEquals(listOf(PhraseRule("brb", "be right back")), built)
+    }
+
+    @Test
+    fun `plain field with no separator yields a single rule`() {
+        assertEquals(
+            listOf(PhraseRule("brb", "be right back")),
+            PhraseRule.forPhrase("brb", "be right back"),
+        )
+    }
+
+    @Test
+    fun `any variation of a shortcut expands to the same text`() {
+        val phoneRules = PhraseRule.forPhrase("phoneno|Phoneno|pno", "215-555-0199")
+        for (typed in listOf("phoneno", "Phoneno", "pno")) {
+            val r = Expander.expand(typed, typed.length, phoneRules, ctx)!!
+            assertEquals("expanding \"$typed\"", "215-555-0199", r.newText)
+        }
+    }
+
+    @Test
     fun `placeholders resolve date newline and cursor`() {
         val r = Expander.expand(
             ";x", 2,
