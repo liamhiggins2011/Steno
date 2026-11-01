@@ -5,6 +5,8 @@ import com.hirephaze.steno.engine.PhraseRule
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import org.json.JSONArray
+import org.json.JSONObject
 
 /**
  * Single source of truth for phrases. The UI observes [phrases] reactively;
@@ -42,6 +44,46 @@ class PhraseRepository private constructor(context: Context) {
     suspend fun delete(phrase: Phrase) {
         dao.delete(phrase)
         refreshSnapshot()
+    }
+
+    /** Serializes every phrase to a human-readable JSON backup. */
+    suspend fun exportJson(): String {
+        val arr = JSONArray()
+        dao.getAll().forEach { p ->
+            arr.put(JSONObject().put("shortcut", p.shortcut).put("expansion", p.expansion))
+        }
+        return JSONObject()
+            .put("app", "steno")
+            .put("version", 1)
+            .put("phrases", arr)
+            .toString(2)
+    }
+
+    /**
+     * Restores phrases from a backup produced by [exportJson]. Accepts either
+     * that object form or a bare JSON array of {shortcut, expansion}. Existing
+     * shortcuts are overwritten; when [replace] is true the table is cleared
+     * first. Returns how many phrases were imported.
+     */
+    suspend fun importJson(text: String, replace: Boolean): Int {
+        val arr = if (text.trimStart().startsWith("[")) {
+            JSONArray(text)
+        } else {
+            JSONObject(text).optJSONArray("phrases") ?: JSONArray()
+        }
+        if (replace) dao.deleteAll()
+        var imported = 0
+        for (i in 0 until arr.length()) {
+            val o = arr.getJSONObject(i)
+            val shortcut = o.optString("shortcut").trim()
+            val expansion = o.optString("expansion")
+            if (shortcut.isNotEmpty() && expansion.isNotEmpty()) {
+                dao.insert(Phrase(shortcut = shortcut, expansion = expansion))
+                imported++
+            }
+        }
+        refreshSnapshot()
+        return imported
     }
 
     suspend fun seedDefaultsIfEmpty() {

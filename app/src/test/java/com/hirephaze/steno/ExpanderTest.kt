@@ -95,6 +95,40 @@ class ExpanderTest {
     }
 
     @Test
+    fun `smart case matches a capitalized trigger and capitalizes the output`() {
+        val brb = PhraseRule.forPhrase("brb", "be right back")
+        val r = Expander.expand("Brb", 3, brb, ctx, smartCase = true)!!
+        assertEquals("Be right back", r.newText)
+    }
+
+    @Test
+    fun `smart case uppercases the output for an all-caps trigger`() {
+        val brb = PhraseRule.forPhrase("brb", "be right back")
+        val r = Expander.expand("BRB", 3, brb, ctx, smartCase = true)!!
+        assertEquals("BE RIGHT BACK", r.newText)
+    }
+
+    @Test
+    fun `smart case leaves a lowercase trigger untouched`() {
+        val brb = PhraseRule.forPhrase("brb", "be right back")
+        val r = Expander.expand("brb", 3, brb, ctx, smartCase = true)!!
+        assertEquals("be right back", r.newText)
+    }
+
+    @Test
+    fun `smart case solves the auto-capitalized phoneno case`() {
+        val phone = PhraseRule.forPhrase("phoneno", "call me")
+        val r = Expander.expand("Phoneno", 7, phone, ctx, smartCase = true)!!
+        assertEquals("Call me", r.newText)
+    }
+
+    @Test
+    fun `without smart case matching stays case-sensitive`() {
+        val brb = PhraseRule.forPhrase("brb", "be right back")
+        assertNull(Expander.expand("Brb", 3, brb, ctx, smartCase = false))
+    }
+
+    @Test
     fun `placeholders resolve date newline and cursor`() {
         val r = Expander.expand(
             ";x", 2,

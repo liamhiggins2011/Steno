@@ -62,6 +62,7 @@ object Expander {
         selection: Int,
         rules: List<PhraseRule>,
         ctx: PlaceholderContext = PlaceholderContext.now(),
+        smartCase: Boolean = false,
     ): Expansion? {
         if (rules.isEmpty()) return null
         val caret = selection.coerceIn(0, text.length)
@@ -69,15 +70,46 @@ object Expander {
 
         val match = rules
             .asSequence()
-            .filter { it.shortcut.isNotEmpty() && before.endsWith(it.shortcut) && boundaryOk(before, it.shortcut) }
+            .filter {
+                it.shortcut.isNotEmpty() &&
+                    before.endsWith(it.shortcut, ignoreCase = smartCase) &&
+                    boundaryOk(before, it.shortcut)
+            }
             .maxByOrNull { it.shortcut.length }
             ?: return null
 
         val start = caret - match.shortcut.length
+        val typedTrigger = before.substring(start)
         val (resolved, caretInResolved) = resolveTemplate(match.expansion, ctx)
-        val newText = text.substring(0, start) + resolved + text.substring(caret)
-        val newSelection = start + (caretInResolved ?: resolved.length)
+        val cased = if (smartCase) matchCase(typedTrigger, resolved) else resolved
+        val newText = text.substring(0, start) + cased + text.substring(caret)
+        val newSelection = start + (caretInResolved ?: cased.length)
         return Expansion(newText, newSelection)
+    }
+
+    /**
+     * Reproduces the trigger's capitalization on the expansion ("smart case").
+     * A lowercase trigger leaves the expansion untouched; a Capitalized trigger
+     * capitalizes the expansion's first letter; an ALL-CAPS trigger (2+ letters)
+     * uppercases the whole thing. Anything mixed is left as written. This only
+     * ever adds capitals, so a deliberately mixed-case expansion is preserved.
+     */
+    internal fun matchCase(trigger: String, output: String): String {
+        val letters = trigger.filter { it.isLetter() }
+        if (letters.isEmpty() || output.isEmpty()) return output
+        val allUpper = letters.length >= 2 && letters.all { it.isUpperCase() }
+        val titleCase = letters.first().isUpperCase() && letters.drop(1).all { it.isLowerCase() }
+        return when {
+            allUpper -> output.uppercase()
+            titleCase -> capitalizeFirstLetter(output)
+            else -> output
+        }
+    }
+
+    private fun capitalizeFirstLetter(s: String): String {
+        val i = s.indexOfFirst { it.isLetter() }
+        if (i < 0) return s
+        return s.substring(0, i) + s[i].uppercaseChar() + s.substring(i + 1)
     }
 
     private fun boundaryOk(before: String, shortcut: String): Boolean {

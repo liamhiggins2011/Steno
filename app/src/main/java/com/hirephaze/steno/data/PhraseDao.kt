@@ -25,6 +25,9 @@ interface PhraseDao {
     @Delete
     suspend fun delete(phrase: Phrase)
 
+    @Query("DELETE FROM phrases")
+    suspend fun deleteAll()
+
     @Query("SELECT COUNT(*) FROM phrases")
     suspend fun count(): Int
 }

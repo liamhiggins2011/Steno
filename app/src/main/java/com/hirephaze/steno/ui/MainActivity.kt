@@ -4,9 +4,12 @@ import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
 import android.provider.Settings
+import android.widget.Toast
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -15,17 +18,23 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
@@ -35,25 +44,30 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.compose.runtime.DisposableEffect
 import com.hirephaze.steno.data.Phrase
 import com.hirephaze.steno.ui.theme.StenoTheme
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class MainActivity : ComponentActivity() {
 
@@ -67,10 +81,48 @@ class MainActivity : ComponentActivity() {
                 val phrases by vm.phrases.collectAsState()
                 var editing by remember { mutableStateOf<EditTarget?>(null) }
 
+                val context = LocalContext.current
+                val scope = rememberCoroutineScope()
+                var smartCase by remember { mutableStateOf(vm.smartCase()) }
+
+                val exportLauncher = rememberLauncherForActivityResult(
+                    ActivityResultContracts.CreateDocument("application/json"),
+                ) { uri ->
+                    if (uri != null) scope.launch(Dispatchers.IO) {
+                        val json = vm.exportJson()
+                        context.contentResolver.openOutputStream(uri)?.use {
+                            it.write(json.toByteArray())
+                        }
+                        withContext(Dispatchers.Main) {
+                            Toast.makeText(context, "Phrases exported", Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                }
+                val importLauncher = rememberLauncherForActivityResult(
+                    ActivityResultContracts.OpenDocument(),
+                ) { uri ->
+                    if (uri != null) scope.launch(Dispatchers.IO) {
+                        val text = context.contentResolver.openInputStream(uri)
+                            ?.bufferedReader()?.use { it.readText() }
+                        val count = text?.let { runCatching { vm.importJson(it, replace = false) }.getOrNull() }
+                        withContext(Dispatchers.Main) {
+                            Toast.makeText(
+                                context,
+                                if (count != null) "Imported $count phrases" else "Couldn't read that file",
+                                Toast.LENGTH_SHORT,
+                            ).show()
+                        }
+                    }
+                }
+
                 val target = editing
                 if (target == null) {
                     PhraseListScreen(
                         phrases = phrases,
+                        smartCase = smartCase,
+                        onToggleSmartCase = { value -> smartCase = value; vm.setSmartCase(value) },
+                        onExport = { exportLauncher.launch("steno-backup.json") },
+                        onImport = { importLauncher.launch(arrayOf("application/json", "text/*", "*/*")) },
                         onAdd = { editing = EditTarget() },
                         onEdit = { editing = EditTarget(it.id, it.shortcut, it.expansion) },
                         onDelete = { vm.delete(it) },
@@ -101,29 +153,94 @@ data class EditTarget(
 @Composable
 private fun PhraseListScreen(
     phrases: List<Phrase>,
+    smartCase: Boolean,
+    onToggleSmartCase: (Boolean) -> Unit,
+    onExport: () -> Unit,
+    onImport: () -> Unit,
     onAdd: () -> Unit,
     onEdit: (Phrase) -> Unit,
     onDelete: (Phrase) -> Unit,
 ) {
     Scaffold(
-        topBar = { TopAppBar(title = { Text("Steno") }) },
+        topBar = {
+            TopAppBar(
+                title = { Text("Steno") },
+                actions = {
+                    var menuOpen by remember { mutableStateOf(false) }
+                    IconButton(onClick = { menuOpen = true }) {
+                        Icon(Icons.Default.MoreVert, contentDescription = "More options")
+                    }
+                    DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+                        DropdownMenuItem(
+                            text = { Text(if (smartCase) "Smart case: on" else "Smart case: off") },
+                            onClick = { onToggleSmartCase(!smartCase); menuOpen = false },
+                            leadingIcon = {
+                                if (smartCase) Icon(Icons.Default.Check, contentDescription = null)
+                            },
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Export phrases") },
+                            onClick = { menuOpen = false; onExport() },
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Import phrases") },
+                            onClick = { menuOpen = false; onImport() },
+                        )
+                    }
+                },
+            )
+        },
         floatingActionButton = {
             FloatingActionButton(onClick = onAdd) {
                 Icon(Icons.Default.Add, contentDescription = "Add phrase")
             }
         },
     ) { padding ->
+        // Tapping the trash icon stages a phrase here; the delete only runs once
+        // the user confirms, so one stray tap can't wipe a phrase.
+        var pendingDelete by remember { mutableStateOf<Phrase?>(null) }
+
         Column(
             Modifier
                 .fillMaxSize()
                 .padding(padding),
         ) {
             ServiceStatusCard()
-            LazyColumn(Modifier.fillMaxSize()) {
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                // Clear the floating + button so the last row's delete stays tappable.
+                contentPadding = PaddingValues(bottom = 96.dp),
+            ) {
                 items(phrases, key = { it.id }) { phrase ->
-                    PhraseRow(phrase, onClick = { onEdit(phrase) }, onDelete = { onDelete(phrase) })
+                    PhraseRow(phrase, onClick = { onEdit(phrase) }, onDelete = { pendingDelete = phrase })
                 }
             }
+        }
+
+        pendingDelete?.let { phrase ->
+            AlertDialog(
+                onDismissRequest = { pendingDelete = null },
+                title = { Text("Delete this phrase?") },
+                text = {
+                    Text(
+                        "\"${phrase.shortcut.replace("|", "  /  ")}\" will be removed. " +
+                            "This can't be undone.",
+                    )
+                },
+                confirmButton = {
+                    TextButton(onClick = {
+                        onDelete(phrase)
+                        pendingDelete = null
+                    }) {
+                        Text("Delete")
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { pendingDelete = null }) {
+                        Text("Cancel")
+                    }
+                },
+            )
         }
     }
 }
@@ -242,7 +359,7 @@ private fun PhraseEditorScreen(
                 title = { Text(if (target.id == null) "New phrase" else "Edit phrase") },
                 navigationIcon = {
                     IconButton(onClick = onCancel) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Cancel")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Cancel")
                     }
                 },
             )
@@ -263,9 +380,9 @@ private fun PhraseEditorScreen(
                 modifier = Modifier.fillMaxWidth(),
             )
             Text(
-                "Want a few ways to trigger the same phrase? Put a | between them and " +
-                    "they'll all work.\nExample:  phoneno | Phoneno | pno  — so it still " +
-                    "fires if your keyboard capitalizes the first letter.",
+                "Need a few triggers for one phrase? Separate them with |.\nExample:  " +
+                    "phoneno | pno. Capitalized typing like Phoneno already works on its own " +
+                    "while Smart case is on (menu at the top right).",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )

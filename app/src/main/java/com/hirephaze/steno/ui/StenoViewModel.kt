@@ -5,6 +5,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.hirephaze.steno.data.Phrase
 import com.hirephaze.steno.data.PhraseRepository
+import com.hirephaze.steno.data.Settings
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
@@ -24,4 +25,12 @@ class StenoViewModel(app: Application) : AndroidViewModel(app) {
     fun delete(phrase: Phrase) {
         viewModelScope.launch { repo.delete(phrase) }
     }
+
+    suspend fun exportJson(): String = repo.exportJson()
+
+    suspend fun importJson(text: String, replace: Boolean): Int = repo.importJson(text, replace)
+
+    fun smartCase(): Boolean = Settings.smartCase(getApplication())
+
+    fun setSmartCase(value: Boolean) = Settings.setSmartCase(getApplication(), value)
 }

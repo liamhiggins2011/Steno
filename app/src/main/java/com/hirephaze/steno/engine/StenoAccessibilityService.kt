@@ -5,6 +5,7 @@ import android.os.Bundle
 import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityNodeInfo
 import com.hirephaze.steno.data.PhraseRepository
+import com.hirephaze.steno.data.Settings
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -46,7 +47,9 @@ class StenoAccessibilityService : AccessibilityService() {
             if (text == lastInjectedText) return // our own injection echoing back
 
             val caret = node.textSelectionEnd.let { if (it in 0..text.length) it else text.length }
-            val result = Expander.expand(text, caret, repo.rules) ?: return
+            val result = Expander.expand(
+                text, caret, repo.rules, smartCase = Settings.smartCase(this),
+            ) ?: return
 
             if (injectText(node, result.newText)) {
                 lastInjectedText = result.newText
