@@ -26,6 +26,10 @@ class StenoViewModel(app: Application) : AndroidViewModel(app) {
         viewModelScope.launch { repo.delete(phrase) }
     }
 
+    fun restore(phrase: Phrase) {
+        viewModelScope.launch { repo.restore(phrase) }
+    }
+
     suspend fun exportJson(): String = repo.exportJson()
 
     suspend fun importJson(text: String, replace: Boolean): Int = repo.importJson(text, replace)

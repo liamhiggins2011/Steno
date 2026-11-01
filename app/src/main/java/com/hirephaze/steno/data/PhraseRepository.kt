@@ -46,6 +46,15 @@ class PhraseRepository private constructor(context: Context) {
         refreshSnapshot()
     }
 
+    /**
+     * Re-inserts a phrase removed by [delete], keeping its original id so an
+     * undo restores it exactly. Backs the "Undo" action after a delete.
+     */
+    suspend fun restore(phrase: Phrase) {
+        dao.insert(phrase)
+        refreshSnapshot()
+    }
+
     /** Serializes every phrase to a human-readable JSON backup. */
     suspend fun exportJson(): String {
         val arr = JSONArray()
